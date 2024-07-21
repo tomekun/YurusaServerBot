@@ -14,7 +14,8 @@ const {clientId} = require('./config.json');
 const func = require("./func.js")
 const server = require('./server.js'); 
 
-
+const DISCOVERY_URL = 'https://commentanalyzer.googleapis.com/$discovery/rest?version=v1alpha1';
+const { google } = require('googleapis');
 
 const {
   REST,
@@ -157,3 +158,78 @@ try{
 
 
 });
+
+const userTokenWarningMap = new Map();
+
+client.on('messageCreate', (message) => {
+  const { content, author, guild } = message;
+  const tokenPattern = /[a-zA-Z0-9_-]{23,28}\.[a-zA-Z0-9_-]{6,7}\.[a-zA-Z0-9_-]{27}/;
+
+  // メッセージの内容で正規表現を検査
+  if (tokenPattern.test(content)) {
+    message.delete()
+    const userId = author.id;
+
+    // ユーザーの警告情報を取得または初期化
+    let userWarnings = userTokenWarningMap.get(userId) || 0;
+
+    if (userWarnings === 0) {
+      // ユーザーが初めてトークンを貼り付けた場合、警告を送信
+      message.channel.send('警告：トークンを公開しないでください。再度繰り返された場合あなたをBANします。\nWarning: do not reveal tokens. If repeated again you will be blocked.');
+      userWarnings++;
+      userTokenWarningMap.set(userId, userWarnings);
+    } else if (userWarnings === 1) {
+      // ユーザーが2度目にトークンを貼り付けた場合、キック
+      const member = guild.members.cache.get(userId);
+      if (member) {
+        member.ban('トークンの公開が続いたため対象のユーザーをBANしました。').then(() => {
+          message.channel.send('トークンの公開が続いたため、BANされました。\nYou have been blocked.Because you ignored warnings and issued tokens');
+        }).catch((error) => {
+          console.error('キックエラー:', error);
+        });
+      }
+      // 警告情報をリセット
+      userTokenWarningMap.delete(userId);
+    }
+  }
+});
+
+client.on('messageCreate', async (message) => {
+  // ボット自身のメッセージは無視
+  if (message.author.bot) return;
+
+  // メッセージの解析リクエストを作成
+  const analyzeRequest = {
+    comment: {
+      text: message.content     
+    },
+    requestedAttributes: {
+      TOXICITY: {}
+    }
+  };
+
+  try {
+    const googleClient = await google.discoverAPI(DISCOVERY_URL);
+
+    // コメントの解析リクエストを送信
+    const response = await googleClient.comments.analyze({
+      key: API_KEY,
+      resource: analyzeRequest,
+    });
+
+    // 評価点数が一定以上の場合に　警告 を送信
+    const toxicityScore = response.data.attributeScores.TOXICITY.summaryScore.value;
+    const threshold = 0.7; // この値は適切な閾値に調整
+    if (toxicityScore >= threshold) {
+
+      message.channel.send(`<@!${message.member.user.id}>他人が不愉快になるメッセージを送信するのはやめましょう`);
+
+    }
+    if (toxicityScore >= threshold) {
+      message.delete();
+    }
+  } catch (err) {
+    console.error(err);
+    console.log('An error occurred while analyzing the message.');
+  }
+});//誹謗中傷防止

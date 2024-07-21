@@ -120,7 +120,7 @@ try{
     if (!userTimeouts.timeout) {
       // タイムアウトを設定
       message.member.timeout(10 * 1000);
-
+      message.delete();
       // タイムアウトをユーザーに通知
       message.channel.send(`<@!${author.id}>`+"スパム防止の為10秒間のタイムアウト");
     }
@@ -130,13 +130,13 @@ try{
     if (!userTimeouts.timeout) {
       // タイムアウトを設定
       message.member.timeout(20 * 1000);
-
+      message.delete();
       // タイムアウトをユーザーに通知
       message.channel.send(`<@!${author.id}>`+"スパム防止の為20秒間のタイムアウト");
     }
   if (userTimeouts.count >= 20) {
       message.member.timeout(1000*60*60*12);
-
+      message.delete();
       // タイムアウトをユーザーに通知
       message.channel.send(`<@!${author.id}>`+"スパム防止の為12時間のタイムアウト、他の運営が対応するのを待つか、12時間お待ち下さい。");
 
@@ -154,7 +154,7 @@ try{
   console.log(userTimeouts.count)
   setTimeout(() => {
     userTimeouts.count = 0;
-  }, "5000");
+  }, "20000");
 
 
 });
@@ -233,3 +233,43 @@ client.on('messageCreate', async (message) => {
     console.log('An error occurred while analyzing the message.');
   }
 });//誹謗中傷防止
+const roleIdsToCheck = ['1264442203791429743'];
+
+
+client.on('messageCreate', async (message) => {
+    // 自分のメッセージには反応しない
+    if (message.author.bot) return;
+
+    // メッセージに@everyoneまたは指定されたロールが含まれているかチェック
+    if (message.mentions.has(message.guild.roles.everyone) ||
+        roleIdsToCheck.some(roleId => message.mentions.has(message.guild.roles.cache.get(roleId)))) {
+        // メッセージ送信者が管理者権限を持っていない場合
+        if (!message.member.permissions.has('ADMINISTRATOR')) {
+            try {
+                // メッセージを削除
+                await message.delete();
+                console.log(`Deleted a message from ${message.author.tag} that mentioned @everyone or specified roles`);
+            } catch (error) {
+                console.error('Error deleting message:', error);
+            }
+        }
+    }
+});
+
+let messageCount = 0;
+
+client.on('messageCreate', (message) => {
+
+    // メッセージのカウントを増やす
+    messageCount++;
+      setTimeout(() => {
+        if (messageCount >= 11) {
+          // スパムとみなす条件を満たす場合、スパム検知メッセージを送信
+          message.member.kick('スパムが続いたため');
+        }
+        // カウントをリセット
+        messageCount = 0;
+      }, 10000); // 10秒間待つ
+    
+
+});

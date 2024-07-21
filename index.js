@@ -132,7 +132,7 @@ try{
       message.member.timeout(20 * 1000);
 
       // タイムアウトをユーザーに通知
-      message.channel.send(`<@!${author.id}>`+"スパム防止の為10秒間のタイムアウト");
+      message.channel.send(`<@!${author.id}>`+"スパム防止の為20秒間のタイムアウト");
     }
   if (userTimeouts.count >= 20) {
       message.member.timeout(1000*60*60*12);

@@ -1,0 +1,21 @@
+{
+    "name": "yurusaqing-zhuan-yong-bot",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "scripts": {
+      "test": "echo \"Error: no test specified\" && exit 1",
+      "npm start": "node index.js"
+    },
+    "author": "tomekun",
+    "license": "ISC",
+    "dependencies": {
+      "axios": "^1.7.2",
+      "cheerio": "^1.0.0-rc.12",
+      "discord.js": "^14.15.3",
+      "dotenv": "^16.4.5",
+      "googleapis": "^140.0.1",
+      "request": "^2.88.2",
+      "sqlite3": "^5.1.7"
+    }
+  }

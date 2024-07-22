@@ -1,3 +1,11 @@
 {
-  "clientId" : "1264469405992226859"
+  "clientId": "1058320643982110791",
+  "securitymode": "false",
+  "limit": "3",
+  "spam": {
+    "time": 10,
+    "count": 11,
+    "trackSameMessage": null
+  },
+  "mspam": 1
 }

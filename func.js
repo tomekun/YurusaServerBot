@@ -1,6 +1,6 @@
 function register(client,clientId,Collection,REST,Routes,path,fs) {
   client.commands = new Collection();
-
+　
 
   const commandsPath = path.join(__dirname, 'commands')
   const commands = [];

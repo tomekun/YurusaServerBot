@@ -42,6 +42,14 @@ module.exports = {
               .setMinValue(3) 
               .setMaxValue(10) 
         )
+             .addIntegerOption((option) =>
+             option
+               .setName('time')
+               .setDescription('監視時間の幅を設定できます（秒数で指定）')
+               .setRequired(true)
+               .setMinValue(10) 
+               .setMaxValue(60*5) 
+                   )
     ),
   execute: async function(interaction) {
     const subcommand = interaction.options.getSubcommand();
@@ -73,6 +81,8 @@ module.exports = {
     }
     if (subcommand === 'mention_spam') {
       const count = interaction.options.getInteger('count');
+      const time = interaction.options.getInteger('time');
+      
       let config;
       if (fs.existsSync(configPath)) {
         const data = fs.readFileSync(configPath);
@@ -80,7 +90,12 @@ module.exports = {
       } else {
         config = {};
       }
-      config.mspam = count
+      
+      config.mspam = {
+        count:count,
+        time:time
+      }
+      
       fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
 
       await interaction.reply(`メンションスパム設定が更新されました。回数: ${count}回`);

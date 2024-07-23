@@ -336,10 +336,10 @@ try{
         const resetTimer = setTimeout(() => {
             mentionCount.delete(userId); // メンション数をリセット
             mentionTimers.delete(userId); // タイマーをリセット
-        }, 5 * 60 * 1000);
+        }, config.mspam.time * 1000);
         mentionTimers.set(userId, resetTimer);
 
-        if (mentionCount.get(userId) >= config.mspam) {
+        if (mentionCount.get(userId) >= config.mspam.count) {
             // タイムアウト処理
             const member = message.guild.members.cache.get(userId);
             if (member) {

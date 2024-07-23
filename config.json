@@ -7,5 +7,9 @@
     "count": 11,
     "trackSameMessage": null
   },
-  "mspam": 1
+  "mspam": {
+    "time": 10,
+    "count" : 3
+  }
 }
+

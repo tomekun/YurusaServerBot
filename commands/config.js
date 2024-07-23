@@ -39,6 +39,8 @@ module.exports = {
               .setName('count')
               .setDescription('スパム認定となる回数')
               .setRequired(true)
+              .setMinValue(3) 
+              .setMaxValue(10) 
         )
     ),
   execute: async function(interaction) {

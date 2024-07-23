@@ -92,8 +92,8 @@ module.exports = {
       }
       
       config.mspam = {
-        count:count,
-        time:time
+        time:time,
+        count:count
       }
       
       fs.writeFileSync(configPath, JSON.stringify(config, null, 2));

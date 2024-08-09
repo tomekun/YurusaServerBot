@@ -69,12 +69,45 @@ console.log("起動準備中...")
 client.login(process.env['DISCORD_BOT_TOKEN']);
 
 //Readyイベント発火
+const guildId = '1264736036316119113';
+const channelId = '1264736036316119116';
 
-client.on("ready", () => {
+client.once("ready", async() => {
   func.register(client,clientId,Collection,REST,Routes,path,fs)
   server.keepServer()
   console.log("起動完了");
+  console.log(`Logged in as ${client.user.tag}!`);
+  const guild = client.guilds.cache.get(guildId); // 指定されたギルドを取得
+  if (guild) {
+      await updateMemberCount(guild);
+  } else {
+      console.log('Guild not found');
+  }
 });
+
+client.on('guildMemberAdd', async member => {
+  if (member.guild.id === guildId) {
+      await updateMemberCount(member.guild);
+  }
+});
+
+client.on('guildMemberRemove', async member => {
+  if (member.guild.id === guildId) {
+      await updateMemberCount(member.guild);
+  }
+});
+
+async function updateMemberCount(guild) {
+  const channel = guild.channels.cache.get(channelId);
+  if (channel) {
+      const memberCount = guild.memberCount;
+      await channel.setName(`Members: ${memberCount}`);
+      console.log(`Updated channel name to: Members: ${memberCount}`);
+  } else {
+      console.log('Channel not found');
+  }
+}
+
 
 client.on('interactionCreate', async interaction => {
     try{
@@ -336,10 +369,10 @@ try{
         const resetTimer = setTimeout(() => {
             mentionCount.delete(userId); // メンション数をリセット
             mentionTimers.delete(userId); // タイマーをリセット
-        }, config.mspam.time * 1000);
+        }, 5 * 60 * 1000);
         mentionTimers.set(userId, resetTimer);
 
-        if (mentionCount.get(userId) >= config.mspam.count) {
+        if (mentionCount.get(userId) >= config.mspam) {
             // タイムアウト処理
             const member = message.guild.members.cache.get(userId);
             if (member) {
@@ -355,4 +388,55 @@ try{
         }
     }
   }catch(e){}
+});
+const deletedChannels = new Map();
+
+client.on('channelDelete', async (channel) => {
+  deletedChannels.set(channel.id, {
+      name: channel.name,
+      type: channel.type,
+      parentID: channel.parentID,
+      position: channel.position,
+      topic: channel.topic,
+      nsfw: channel.nsfw,
+      rateLimitPerUser: channel.rateLimitPerUser,
+      bitrate: channel.bitrate,
+      userLimit: channel.userLimit
+  });
+  console.log(`Channel deleted: ${channel.name}`);
+});
+
+client.on('messageCreate', async (message) => {
+  if (message.content.startsWith('!restoreChannel')) {
+      const args = message.content.split(' ');
+      const channelId = args[1];
+
+      if (deletedChannels.has(channelId)) {
+          const channelData = deletedChannels.get(channelId);
+          const restoredChannel = await message.guild.channels.create(channelData.name, {
+              type: channelData.type,
+              parent: channelData.parentID,
+              position: channelData.position,
+              topic: channelData.topic,
+              nsfw: channelData.nsfw,
+              rateLimitPerUser: channelData.rateLimitPerUser,
+              bitrate: channelData.bitrate,
+              userLimit: channelData.userLimit
+          });
+          deletedChannels.delete(channelId);
+          message.reply(`Channel restored: ${restoredChannel.name}`);
+      } else {
+          message.reply('No channel found with that ID.');
+      }
+  }
+});
+
+
+
+const interval = setInterval(()=>{func.surveillance()}, 10000); // 10秒 = 10000ミリ秒
+
+process.on('SIGINT', () => {
+  func.clearInterval(interval);
+
+  console.log('Intervalが停止しました。');
 });

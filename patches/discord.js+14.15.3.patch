@@ -1,0 +1,15 @@
+diff --git a/node_modules/discord.js/src/structures/GuildChannel.js b/node_modules/discord.js/src/structures/GuildChannel.js
+index a25434a..0a8135c 100644
+--- a/node_modules/discord.js/src/structures/GuildChannel.js
++++ b/node_modules/discord.js/src/structures/GuildChannel.js
+@@ -467,8 +467,10 @@ class GuildChannel extends BaseChannel {
+    *   .catch(console.error);
+    */
+   async delete(reason) {
++    try{
+     await this.guild.channels.delete(this.id, reason);
+     return this;
++  }catch(e){console.log("")}
+   }
+ }
+ 

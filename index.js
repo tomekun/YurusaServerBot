@@ -175,15 +175,31 @@ client.on('messageCreate', async (message) => {
 });
 
 function handleMentions(message, userId, currentTime) {
+  // ユーザーのメンションを処理
   if (!mentionCount.has(userId)) mentionCount.set(userId, []);
-
   const timestamps = mentionCount.get(userId).filter(timestamp => currentTime - timestamp < cooldown1 * 1000);
   timestamps.push(currentTime);
   mentionCount.set(userId, timestamps);
 
+  // ユーザーのメンション回数が閾値を超えた場合
   if (timestamps.length > count1) {
-    applyTimeout(message, userId, 'メンションのスパム', attention1, timeout1);
+    applyTimeout(message, userId, 'メンションのスパム', strictMode ? 1 : attention1, timeout1);
   }
+
+  // ロールのメンションを処理
+  const rolesMentioned = message.mentions.roles;
+  rolesMentioned.forEach(role => {
+    const roleId = role.id;
+    if (!mentionCount.has(roleId)) mentionCount.set(roleId, []);
+    const roleTimestamps = mentionCount.get(roleId).filter(timestamp => currentTime - timestamp < cooldown1 * 1000);
+    roleTimestamps.push(currentTime);
+    mentionCount.set(roleId, roleTimestamps);
+
+    // ロールのメンション回数が閾値を超えた場合
+    if (roleTimestamps.length > count1) {
+      applyTimeout(message, userId, `ロール「${role.name}」のメンションスパム`, strictMode ? 1 : attention1, timeout1);
+    }
+  });
 }
 
 function handleInviteLinks(message, userId) {

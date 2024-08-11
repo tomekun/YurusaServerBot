@@ -1,12 +1,7 @@
 
 const { promises: fsPromises, ...fs } = require('fs');
-var request = require('request');
 const path = require("path")
 require('dotenv').config();
-const sqlite3 = require('sqlite3').verbose();
-const axios = require('axios');
-const cheerio = require('cheerio');
-const { promisify } = require('util');
 
 //ファイルの読み込み
 
@@ -14,25 +9,13 @@ const {clientId} = require('./config.json');
 const func = require("./func.js")
 const server = require('./server.js'); 
 
-const DISCOVERY_URL = 'https://commentanalyzer.googleapis.com/$discovery/rest?version=v1alpha1';
-const { google } = require('googleapis');
-
 const {
   REST,
   Routes,
   Client,
-Partials,
+  Partials,
   Collection,
-  EmbedBuilder,
-  ModalBuilder, 
-  ActivityType,
-  ButtonBuilder,
-  TextInputStyle,
-  TextInputBuilder, 
-  ActionRowBuilder,
   GatewayIntentBits,
-  StringSelectMenuBuilder,
-  StringSelectMenuOptionBuilder
 } = require("discord.js");
 
 //intents設定
@@ -53,9 +36,6 @@ const client = new Client({
   ]
 });
 
-//変数
-const timeouts = new Map();//スパム対策
-
 //Token設定の確認
 
 if (process.env['DISCORD_BOT_TOKEN'] == undefined) {
@@ -70,11 +50,14 @@ client.login(process.env['DISCORD_BOT_TOKEN']);
 
 //Readyイベント発火
 
-client.on("ready", () => {
+client.once("ready", async() => {
   func.register(client,clientId,Collection,REST,Routes,path,fs)
   server.keepServer()
   console.log("起動完了");
+  console.log(`Logged in as ${client.user.tag}!`);
+  
 });
+
 
 client.on('interactionCreate', async interaction => {
     try{
@@ -99,77 +82,6 @@ client.on('interactionCreate', async interaction => {
     }
   });//スラッシュコマンド設定
 
-
-client.on('messageCreate', async (message) => {
-  const filePath = path.resolve(__dirname, 'torf.json');
-
-  try {
-    // torf.jsonを読み込み
-    const data = await fsPromises.readFile(filePath, 'utf-8');
-    const config = JSON.parse(data);
-
-  const { author, content } = message;
-
-  if (author.bot) return;
-
-  // ユーザーごとにカウントを追跡
-  const userTimeouts = timeouts.get(author.id) || { count: 0, timeout: null };
-
-  // 直近のメッセージと比較して同じであればカウントを増やす
-    if (config.spam.trackSameMessage) {
-      if (userTimeouts.lastMessage === content) {
-          userTimeouts.count++;
-      } else {
-          userTimeouts.count = 1;
-          userTimeouts.lastMessage = content;
-      }
-    } else {
-      userTimeouts.count++;
-    }
-try{
-  // 5秒以内に3回以上同じメッセージを送信した場合
-  if (userTimeouts.count >= config.count && userTimeouts.count < config.count+2) {
-    if (!userTimeouts.timeout) {
-      // タイムアウトを設定
-      message.member.timeout(10 * 1000);
-      message.delete();
-      // タイムアウトをユーザーに通知
-      message.channel.send(`<@!${author.id}>`+"スパム防止の為10秒間のタイムアウト");
-    }
-
-  }
-  if (userTimeouts.count >= config.count+2 && userTimeouts.count < config.count+4) {
-    if (!userTimeouts.timeout) {
-      // タイムアウトを設定
-      message.member.timeout(20 * 1000);
-      message.delete();
-      // タイムアウトをユーザーに通知
-      message.channel.send(`<@!${author.id}>`+"スパム防止の為20秒間のタイムアウト");
-    }
-  if (userTimeouts.count >= config.count+4) {
-      message.member.timeout(1000*60*60*12);
-      message.delete();
-      // タイムアウトをユーザーに通知
-      message.channel.send(`<@!${author.id}>`+"スパム防止の為12時間のタイムアウト、他の運営が対応するのを待つか、12時間お待ち下さい。");
-
-    }  
-
-  }  
-  else {
-    clearTimeout(userTimeouts.timeout);
-    userTimeouts.timeout = null;
-
-  }
-  }catch(e){console.log("エラー。権限が不足してないか等を確認してください\nerror:"+e)}
-  userTimeouts.lastMessage = content;
-  timeouts.set(author.id, userTimeouts);
-  console.log(userTimeouts.count)
-  setTimeout(() => {
-    userTimeouts.count = 0;
-  }, config.time*1000);
-
-  }catch(e){}
-});
 
 const userTokenWarningMap = new Map();
 
@@ -206,102 +118,194 @@ client.on('messageCreate', (message) => {
   }
 });
 
+const interval = setInterval(()=>{func.surveillance()}, 10000); // 10秒 = 10000ミリ秒
+
+process.on('SIGINT', () => {
+  func.clearInterval(interval);
+
+  console.log('Intervalが停止しました。');
+});
+
+
+const config = require('./config.json');
+
+const rinkPoints = new Map();
+const message_vPoints = new Map();
+const heatmessageCount = new Map();
+const mentionCount = new Map();
+const timeoutCount = new Map();
+
+const cooldown1 = config.mentionSpam.cooldown;
+const count1 = config.mentionSpam.count;
+const attention1 = config.mentionSpam.attention;
+const timeout1 = config.mentionSpam.timeout;
+
+const cooldown2 = config.spam.cooldown;
+const count2 = config.spam.count;
+const attention2 = config.spam.attention;
+const timeout2 = config.spam.timeout;
+
+const attention3 = config.rinkSpam.attention;  
+const timeout3 = config.rinkSpam.timeout;
+
+const numpeople = config.strictMode.num_people;
+const strict_time = config.strictMode.strict_time;
+
+const ADMIN_USER_ID = '958667546284920862';
+let strictMode = false;
+
+const inviteRegex = /(https?:\/\/)?(www\.)?(discord\.(gg|io|me|li)|discordapp\.com\/invite)\/[a-zA-Z0-9]+/g;
+
 client.on('messageCreate', async (message) => {
-  // ボット自身のメッセージは無視
-  if (message.author.bot) return;
+  if (message.author.bot || !message.guild) return;
 
-  // メッセージの解析リクエストを作成
-  const analyzeRequest = {
-    comment: {
-      text: message.content     
-    },
-    requestedAttributes: {
-      TOXICITY: {}
-    }
-  };
+  const userId = message.author.id;
+  const currentTime = Date.now();
 
-  try {
-    const googleClient = await google.discoverAPI(DISCOVERY_URL);
-
-    // コメントの解析リクエストを送信
-    const response = await googleClient.comments.analyze({
-      key: API_KEY,
-      resource: analyzeRequest,
-    });
-
-    // 評価点数が一定以上の場合に　警告 を送信
-    const toxicityScore = response.data.attributeScores.TOXICITY.summaryScore.value;
-    const threshold = 0.7; // この値は適切な閾値に調整
-    if (toxicityScore >= threshold) {
-
-      message.channel.send(`<@!${message.member.user.id}>他人が不愉快になるメッセージを送信するのはやめましょう`);
-
-    }
-    if (toxicityScore >= threshold) {
-      message.delete();
-    }
-  } catch (err) {
-    console.error(err);
-    console.log('An error occurred while analyzing the message.');
+  if (message.mentions.users.size > 0 || message.mentions.roles.size > 0 || message.mentions.everyone) {
+    handleMentions(message, userId, currentTime);
   }
-});//誹謗中傷防止
-const roleIdsToCheck = ['1264442203791429743'];
 
-/*
-client.on('messageCreate', async (message) => {
-    // 自分のメッセージには反応しない
-    if (message.author.bot) return;
+  if (inviteRegex.test(message.content)) {
+    handleInviteLinks(message, userId);
+  }
 
-    // メッセージに@everyoneまたは指定されたロールが含まれているかチェック
-    if (message.mentions.has(message.guild.roles.everyone) ||
-        roleIdsToCheck.some(roleId => message.mentions.has(message.guild.roles.cache.get(roleId)))) {
-        // メッセージ送信者が管理者権限を持っていない場合
-        if (!message.member.permissions.has('ADMINISTRATOR')) {
-            try {
-                // メッセージを削除
-                await message.delete();
-                console.log(`Deleted a message from ${message.author.tag} that mentioned @everyone or specified roles`);
-            } catch (error) {
-                console.error('Error deleting message:', error);
-            }
-        }
+  handleSpamMessages(message, userId, currentTime);
+  checkStrictMode(message.guild.id);
+});
+
+function handleMentions(message, userId, currentTime) {
+  // ユーザーのメンションを処理
+  if (!mentionCount.has(userId)) mentionCount.set(userId, []);
+  const timestamps = mentionCount.get(userId).filter(timestamp => currentTime - timestamp < cooldown1 * 1000);
+  timestamps.push(currentTime);
+  mentionCount.set(userId, timestamps);
+
+  // ユーザーのメンション回数が閾値を超えた場合
+  if (timestamps.length > count1) {
+    applyTimeout(message, userId, 'メンションのスパム', strictMode ? 1 : attention1, timeout1);
+  }
+
+  // ロールのメンションを処理
+  const rolesMentioned = message.mentions.roles;
+  rolesMentioned.forEach(role => {
+    const roleId = role.id;
+    if (!mentionCount.has(roleId)) mentionCount.set(roleId, []);
+    const roleTimestamps = mentionCount.get(roleId).filter(timestamp => currentTime - timestamp < cooldown1 * 1000);
+    roleTimestamps.push(currentTime);
+    mentionCount.set(roleId, roleTimestamps);
+
+    // ロールのメンション回数が閾値を超えた場合
+    if (roleTimestamps.length > count1) {
+      applyTimeout(message, userId, `ロール「${role.name}」のメンションスパム`, strictMode ? 1 : attention1, timeout1);
     }
-});
-*/
-let messageCount = 0;
+  });
+}
 
-client.on('messageCreate', (message) => {
+function handleInviteLinks(message, userId) {
+  const inviteLinks = message.content.match(inviteRegex);
 
-    // メッセージのカウントを増やす
-    messageCount++;
+  for (const link of inviteLinks) {
+    const inviteCode = link.split('/').pop();
+    client.fetchInvite(inviteCode).then(invite => {
+      if (invite.guild.id !== message.guild.id) {
+        message.delete()
+        applyTimeout(message, userId, '招待リンクのスパム', attention3, timeout3);
+      }
+    }).catch(console.error);
+  }
+}
+
+function handleSpamMessages(message, userId, currentTime) {
+  if (!heatmessageCount.has(userId)) {
+    heatmessageCount.set(userId, []);
+  }
+
+  const timestamps = heatmessageCount.get(userId).filter(timestamp => currentTime - timestamp < cooldown2 * 1000);
+  timestamps.push(currentTime);
+  heatmessageCount.set(userId, timestamps);
+
+  if (timestamps.length > count2) {
+    applyTimeout(message, userId, 'スパム', attention2, timeout2);
+  }
+}
+
+function applyTimeout(message, userId, reason, threshold, timeout) {
+  const points = (strictMode ? message_vPoints : rinkPoints).get(userId) || 0;
+  (strictMode ? message_vPoints : rinkPoints).set(userId, points + 1);
+
+  if (strictMode || points + 1 >= threshold) {
+    const member = message.guild.members.cache.get(userId);
+    if (member) {
+      const timeoutDuration = strictMode ? strict_time : timeout;
+      member.timeout(timeoutDuration * 60 * 1000, `${reason}によるタイムアウト（StrictMode: ${strictMode}）`)
+        .then(() => {
+          const timeoutMessage = strictMode 
+            ? `${message.author}は${reason}のため、StrictModeにより即時${strict_time}分間のタイムアウトが適用されました。`
+            : `${message.author}は${reason}のため、${timeout}分間のタイムアウトが適用されました。`;
+          message.channel.send(timeoutMessage);
+          updateTimeoutCount(message.guild.id);
+        })
+        .catch(console.error);
+    }
+    (strictMode ? message_vPoints : rinkPoints).delete(userId);
+  } else {
+    message.channel.send(`${message.author}, ${reason}が検出されました。違反ポイント: ${points + 1}/${threshold}`);
+  }
+}
+
+function updateTimeoutCount(guildId) {
+  const timeoutTotal = (timeoutCount.get(guildId) || 0) + 1;
+  timeoutCount.set(guildId, timeoutTotal);
+
+  if (timeoutTotal >= numpeople && !strictMode) {
+    strictMode = true;
+    client.users.fetch(ADMIN_USER_ID).then(adminUser => {
+      adminUser.send(`サーバー内でタイムアウトされたユーザーが${numpeople}人を超えました。これによりStrictModeが有効になります。`);
+
       setTimeout(() => {
-        if (messageCount >= 11) {
-          // スパムとみなす条件を満たす場合、スパム検知メッセージを送信
-          message.member.kick('スパムが続いたため');
-        }
-        // カウントをリセット
-        messageCount = 0;
-      }, 10000); // 10秒間待つ
+        timeoutCount.delete(guildId);
+        strictMode = false;
+        adminUser.send(`タイムアウトカウントがリセットされ、StrictModeが無効になりました。`);
+      }, strict_time * 60 * 1000);
+    }).catch(console.error);
+  }
+}
 
-
+client.on('guildMemberUpdate', (oldMember, newMember) => {
+  if (!oldMember.communicationDisabledUntil && newMember.communicationDisabledUntil) {
+    updateTimeoutCount(newMember.guild.id);
+  }
 });
 
-// メンバーがサーバーに参加したときのイベント
+function checkStrictMode(guildId) {
+  if (timeoutCount.get(guildId) >= numpeople && !strictMode) {
+    strictMode = true;
+  }
+}
+
+client.on('guildMemberAdd', async member => {
+  if (strictMode) {
+    await member.send('現在サーバーが複数人のユーザによって荒らされている可能性があります。しばらくしてから再度参加をお試しください。');
+    setTimeout(() => {
+      member.kick('StrictModeが有効なため新しいメンバーをKickしました。');
+    }, 3000);
+    console.log(`Kicked ${member.user.tag} due to security mode.`);
+  }
+});
+
 client.on('guildMemberAdd', async member => {
   const filePath = path.resolve(__dirname, 'torf.json');
 
   try {
-    // torf.jsonを読み込み
     const data = await fsPromises.readFile(filePath, 'utf-8');
     const config = JSON.parse(data);
 
     if (config.securitymode === 'true') {
-      // メッセージを送信し、Kickする
       await member.send('現在サーバーが複数人のユーザによって荒らされている可能性があります。しばらくしてから再度参加をお試しください。');
-      setTimeout(()=>{
-      member.kick('セキュリティモードのため新しいメンバーをKickしました。');
-      },3000)
-
+      setTimeout(() => {
+        member.kick('セキュリティモードのため新しいメンバーをKickしました。');
+      }, 3000);
       console.log(`Kicked ${member.user.tag} due to security mode.`);
     }
   } catch (error) {
@@ -309,50 +313,106 @@ client.on('guildMemberAdd', async member => {
   }
 });
 
-const mentionCount = new Map(); // ユーザーごとのメンション数を保持するマップ
-const mentionTimers = new Map(); // ユーザーごとのリセットタイマーを保持するマップ
+const buttonkit = require('./button.js');
 
-client.on('messageCreate', async message => {
-    if (message.author.bot) return; // ボットのメッセージは無視
-  const filePath = path.resolve(__dirname, 'config.json');
-try{
-  // torf.jsonを読み込み
-  const data = await fsPromises.readFile(filePath, 'utf-8');
-  const config = JSON.parse(data);
-    const mentions = message.mentions.users.size + message.mentions.roles.size + (message.mentions.everyone ? 1 : 0);
-    if (mentions > 0) {
-        const userId = message.author.id;
 
-        if (!mentionCount.has(userId)) {
-            mentionCount.set(userId, 0);
-        }
+let bmessage;
+let brole;
+let bcid;
+let bephe;
 
-        mentionCount.set(userId, mentionCount.get(userId) + mentions);
+client.on('interactionCreate', async interaction => {
+    if (interaction.isCommand()) {
+        if (interaction.commandName === "button") {
+            const solt = Math.floor(1000 + Math.random() * 9000);
+            const timestamp = Date.now();
+            const bid = `${solt}`+timestamp
+            // コマンドを実行しているユーザーのメンバーオブジェクトを取得
+            const member = await interaction.guild.members.fetch(interaction.user.id);
 
-        // リセットタイマーの設定
-        if (mentionTimers.has(userId)) {
-            clearTimeout(mentionTimers.get(userId)); // 既存のタイマーをクリア
-        }
-        const resetTimer = setTimeout(() => {
-            mentionCount.delete(userId); // メンション数をリセット
-            mentionTimers.delete(userId); // タイマーをリセット
-        }, config.mspam.time * 1000);
-        mentionTimers.set(userId, resetTimer);
+            // コマンドを実行しているユーザーが管理者またはサーバー所有者であるかをチェック
+            const hasPermission = member.permissions.has(PermissionsBitField.Flags.Administrator) || interaction.guild.ownerId === interaction.user.id;
 
-        if (mentionCount.get(userId) >= config.mspam.count) {
-            // タイムアウト処理
-            const member = message.guild.members.cache.get(userId);
-            if (member) {
-                member.timeout(1000*60*60*2)
-                    .then(() => {
-                        message.channel.send(`${member} has been timed out for excessive mentions.`);
-                        mentionCount.delete(userId); // タイムアウト後にカウントをリセット
-                        clearTimeout(mentionTimers.get(userId)); // タイマーをクリア
-                        mentionTimers.delete(userId); // タイマーを削除
-                    })
-                    .catch(console.error);
+            // roleオプションが指定されている場合、権限チェック
+            const role = interaction.options.getRole('role');
+            if (role && !hasPermission) {
+              return interaction.reply({ content: 'このコマンドを実行するには、管理者権限が必要です。',ehpemeral: true });
             }
+
+                const bname = interaction.options.getString('name');
+                const btype = interaction.options.getString('type');
+                bmessage = interaction.options.getString('sendmessage');
+                brole = interaction.options.getRole('role');
+                let bepheA = interaction.options.getBoolean('ephemeral');
+                bephe = `${bepheA}`;
+                bcid = `${bname}:${bid}`;
+
+                const button = new ButtonBuilder()
+                    .setCustomId(`${bcid}`)
+                    .setLabel(`${bname}`)
+                    .setStyle(`${btype}`);
+
+                const row = new ActionRowBuilder().addComponents(button);
+
+                await interaction.reply({ components: [row] });
+                if (brole) {
+                    brole = `${brole.name}`;
+                } else {
+                    brole = "";
+                }
+                buttonkit.saveDataToBcid(bcid, bmessage, brole, bephe);
+
+
+        }
+    } else if (interaction.isButton()) {
+        console.log(interaction.customId);
+        //await interaction.deferReply(); // 遅延応答
+
+        try {
+            const buttonData = func.loadButtonData();
+
+          if (buttonData.hasOwnProperty(interaction.customId)) {
+              const data = buttonData[interaction.customId];
+
+              if (data.message) {
+                  if (data.ephe === "true") {
+                      await interaction.reply({ content: `${data.message}`, ephemeral: true });
+                  } else {
+                      console.log(data.message);
+                      await interaction.reply({ content: data.message });
+                  }
+              }
+
+              if (data.role) {
+                  const role = interaction.guild.roles.cache.find(role => role.name === data.role);
+                  if (role) {
+                      try {
+                          const member = interaction.guild.members.cache.get(interaction.user.id);
+                          if (member) {
+                              // すでにロールを持っている場合は剥奪する
+                              if (member.roles.cache.has(role.id)) {
+                                 console.log(`Removed role: ${role.name}`);
+                                return await member.roles.remove(role);
+
+                              }
+                              // ロールを付与する
+                              await member.roles.add(role);
+                              console.log(`Added role: ${role.name}`);
+                          } else {
+                              await interaction.reply("ユーザーが見つかりません。");
+                          }
+                      } catch (e) {
+                          await interaction.reply("ロールの付与に失敗しました。\nロール管理の権限がないか、このBOTのロールより上位のロールまたは無効なロールを付与しようとしています。");
+                      }
+                  } else {
+                      await interaction.reply("ロールが見つかりません。");
+                  }
+              }
+          }
+
+        } catch (error) {
+            console.error('Error handling button interaction:', error);
+            await interaction.editReply("エラーが発生しました。");
         }
     }
-  }catch(e){}
 });

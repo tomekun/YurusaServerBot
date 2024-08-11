@@ -1,15 +1,24 @@
 {
-  "clientId": "1264469405992226859",
+  "clientId": "1058320643982110791",
   "securitymode": "false",
-  "limit": "3",
-  "spam": {
-    "time": 10,
-    "count": 11,
-    "trackSameMessage": null
+  "strictMode": {
+    "num_people": 3,
+    "strict_time": 10
   },
-  "mspam": {
-    "time": 10,
-    "count" : 3
+  "spam": {
+    "cooldown": 10,
+    "count": 3,
+    "attention": 3,
+    "timeout": 1
+  },
+  "rinkSpam": {
+    "attention": 2,
+    "timeout": 20
+  },
+  "mentionSpam": {
+    "cooldown": 10,
+    "count": 1,
+    "attention": 2,
+    "timeout": 1
   }
 }
-

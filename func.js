@@ -42,6 +42,7 @@ function register(client,clientId,Collection,REST,Routes,path,fs) {
   }
 }
 
+
 function getServerInformation(guild) {
   const channels = guild.channels.cache;
   const serverData = [];
@@ -87,7 +88,7 @@ function getServerInformation(guild) {
   });
 
   const serverDataJson = JSON.stringify(serverData, null, 2);
-  const jsonFileName = `./commands/ServerData/serverData:${synthesisTime}.json`;
+  const jsonFileName = `./ServerData/serverData:${synthesisTime}.json`;
   fs.writeFileSync(jsonFileName, JSON.stringify(serverData, null, 2));
   console.log('チャンネルとカテゴリー情報をJSONファイルに保存しました.');
 

@@ -209,6 +209,7 @@ function handleInviteLinks(message, userId) {
     const inviteCode = link.split('/').pop();
     client.fetchInvite(inviteCode).then(invite => {
       if (invite.guild.id !== message.guild.id) {
+        message.delete()
         applyTimeout(message, userId, '招待リンクのスパム', attention3, timeout3);
       }
     }).catch(console.error);

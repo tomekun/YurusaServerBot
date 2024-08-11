@@ -312,3 +312,107 @@ client.on('guildMemberAdd', async member => {
     console.error('Error reading or parsing torf.json:', error);
   }
 });
+
+const buttonkit = require('./button.js');
+
+
+let bmessage;
+let brole;
+let bcid;
+let bephe;
+
+client.on('interactionCreate', async interaction => {
+    if (interaction.isCommand()) {
+        if (interaction.commandName === "button") {
+            const solt = Math.floor(1000 + Math.random() * 9000);
+            const timestamp = Date.now();
+            const bid = `${solt}`+timestamp
+            // コマンドを実行しているユーザーのメンバーオブジェクトを取得
+            const member = await interaction.guild.members.fetch(interaction.user.id);
+
+            // コマンドを実行しているユーザーが管理者またはサーバー所有者であるかをチェック
+            const hasPermission = member.permissions.has(PermissionsBitField.Flags.Administrator) || interaction.guild.ownerId === interaction.user.id;
+
+            // roleオプションが指定されている場合、権限チェック
+            const role = interaction.options.getRole('role');
+            if (role && !hasPermission) {
+              return interaction.reply({ content: 'このコマンドを実行するには、管理者権限が必要です。',ehpemeral: true });
+            }
+
+                const bname = interaction.options.getString('name');
+                const btype = interaction.options.getString('type');
+                bmessage = interaction.options.getString('sendmessage');
+                brole = interaction.options.getRole('role');
+                let bepheA = interaction.options.getBoolean('ephemeral');
+                bephe = `${bepheA}`;
+                bcid = `${bname}:${bid}`;
+
+                const button = new ButtonBuilder()
+                    .setCustomId(`${bcid}`)
+                    .setLabel(`${bname}`)
+                    .setStyle(`${btype}`);
+
+                const row = new ActionRowBuilder().addComponents(button);
+
+                await interaction.reply({ components: [row] });
+                if (brole) {
+                    brole = `${brole.name}`;
+                } else {
+                    brole = "";
+                }
+                buttonkit.saveDataToBcid(bcid, bmessage, brole, bephe);
+
+
+        }
+    } else if (interaction.isButton()) {
+        console.log(interaction.customId);
+        //await interaction.deferReply(); // 遅延応答
+
+        try {
+            const buttonData = func.loadButtonData();
+
+          if (buttonData.hasOwnProperty(interaction.customId)) {
+              const data = buttonData[interaction.customId];
+
+              if (data.message) {
+                  if (data.ephe === "true") {
+                      await interaction.reply({ content: `${data.message}`, ephemeral: true });
+                  } else {
+                      console.log(data.message);
+                      await interaction.reply({ content: data.message });
+                  }
+              }
+
+              if (data.role) {
+                  const role = interaction.guild.roles.cache.find(role => role.name === data.role);
+                  if (role) {
+                      try {
+                          const member = interaction.guild.members.cache.get(interaction.user.id);
+                          if (member) {
+                              // すでにロールを持っている場合は剥奪する
+                              if (member.roles.cache.has(role.id)) {
+                                 console.log(`Removed role: ${role.name}`);
+                                return await member.roles.remove(role);
+
+                              }
+                              // ロールを付与する
+                              await member.roles.add(role);
+                              console.log(`Added role: ${role.name}`);
+                          } else {
+                              await interaction.reply("ユーザーが見つかりません。");
+                          }
+                      } catch (e) {
+                          await interaction.reply("ロールの付与に失敗しました。\nロール管理の権限がないか、このBOTのロールより上位のロールまたは無効なロールを付与しようとしています。");
+                      }
+                  } else {
+                      await interaction.reply("ロールが見つかりません。");
+                  }
+              }
+          }
+
+        } catch (error) {
+            console.error('Error handling button interaction:', error);
+            await interaction.editReply("エラーが発生しました。");
+        }
+    }
+});

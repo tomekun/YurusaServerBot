@@ -1,3 +1,4 @@
+const { load } = require("cheerio");
 const fs = require("fs")
 const path = require("path")
 
@@ -143,8 +144,16 @@ function surveillance() {
 
 }
 
+function loadButtonData() {
+  try{
+  const data = fs.readFileSync('./data/buttonData.json', 'utf8');
+
+  return JSON.parse(data);
+  }catch(e){console.log("データが存在しません")}
+}
 
 module.exports = {
+  loadButtonData,
   surveillance,
   getServerInformation,
   register,

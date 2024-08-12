@@ -1,4 +1,5 @@
 const { SlashCommandBuilder } = require('discord.js');
+const path = require('path');
 const fs = require('fs');
 module.exports = {
   data: new SlashCommandBuilder()
@@ -6,6 +7,7 @@ module.exports = {
     .setDescription('現在のサーバー情報を取得します')
     ,
   execute: async function(interaction) {
+    await interaction.deferReply({ ephemeral: true });
     const guild = interaction.guild;
     function getServerInformation(guild) {
       const channels = guild.channels.cache;
@@ -51,13 +53,14 @@ module.exports = {
         }
       });
 
+
       const serverDataJson = JSON.stringify(serverData, null, 2);
-      const jsonFileName = `./commands/ServerData/serverData:${synthesisTime}.json`;
+      const jsonFileName = path.resolve(__dirname, `../ServerData/serverData:${synthesisTime}.json`);
       fs.writeFileSync(jsonFileName, JSON.stringify(serverData, null, 2));
       console.log('チャンネルとカテゴリー情報をJSONファイルに保存しました.');
 
       return serverDataJson;
     }
     getServerInformation(guild);
-    interaction.reply("サーバーの情報を取得しました")
+    interaction.editReply("サーバーの情報を取得しました")
 }};

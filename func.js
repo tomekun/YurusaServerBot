@@ -94,6 +94,7 @@ function getServerInformation(guild) {
 
   return serverDataJson;
 }
+
 function surveillance() {
   const folderPath = './ServerData'; // フォルダーのパスを指定
   const maxFileCount = 5;

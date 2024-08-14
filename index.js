@@ -453,11 +453,5 @@ function logErrorToFile(err) {
 }
 
 process.on('uncaughtException', (err) => {
-  console.error('Unhandled Exception:', err);
   sendError(err);
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-  sendError(reason);
 });

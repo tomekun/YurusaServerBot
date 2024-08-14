@@ -421,7 +421,7 @@ client.on('interactionCreate', async interaction => {
 
 async function sendError(err) {
   const logFilePath = logErrorToFile(err);
-  const channel = client.channels.cache.get('1266316881573314655');
+  const channel = client.channels.cache.get('1273213512180699227');
 
   if (channel) {
       await channel.send({

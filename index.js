@@ -15,6 +15,8 @@ const {
   Client,
   Partials,
   Collection,
+  ButtonBuilder,
+  ActionRowBuilder,
   GatewayIntentBits,
   PermissionsBitField,
 } = require("discord.js");

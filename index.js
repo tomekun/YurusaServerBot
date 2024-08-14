@@ -418,3 +418,46 @@ client.on('interactionCreate', async interaction => {
         }
     }
 });
+
+async function sendError(err) {
+  const logFilePath = logErrorToFile(err);
+  const channel = client.channels.cache.get('1266316881573314655');
+
+  if (channel) {
+      await channel.send({
+          content: 'エラーが発生しました。',
+          files: [logFilePath]
+      });
+
+      // 送信後に一時的なログファイルを削除
+      fs.unlinkSync(logFilePath);
+  }
+}
+
+// エラーメッセージをファイルに記録する関数
+function logErrorToFile(err) {
+  const logDir = path.join(__dirname, 'logs');
+  const logFileName = `error_${Date.now()}.log`;
+  const logFilePath = path.join(logDir, logFileName);
+
+  // ログディレクトリが存在しない場合は作成
+  if (!fs.existsSync(logDir)) {
+      fs.mkdirSync(logDir);
+  }
+
+  // エラーメッセージとスタックトレースをログファイルに書き込み
+  const errorMessage = `[${new Date().toISOString()}] ${err.stack || err}\n\n`;
+  fs.writeFileSync(logFilePath, errorMessage, 'utf8');
+
+  return logFilePath;
+}
+
+process.on('uncaughtException', (err) => {
+  console.error('Unhandled Exception:', err);
+  sendError(err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  sendError(reason);
+});

@@ -17,7 +17,7 @@
   },
   "mentionSpam": {
     "cooldown": 10,
-    "count": 1,
+    "count": 3,
     "attention": 2,
     "timeout": 1
   }

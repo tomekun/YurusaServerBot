@@ -16,11 +16,11 @@ const {
   Partials,
   Collection,
   GatewayIntentBits,
+  PermissionsBitField,
 } = require("discord.js");
 
 //intents設定
 const client = new Client({
-  ws: { properties: { $browser: "Discord iOS" } },
   intents: [
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.GuildMessages,

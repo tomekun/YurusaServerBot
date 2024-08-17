@@ -157,6 +157,7 @@ const ADMIN_USER_ID = '958667546284920862';
 let strictMode = false;
 
 const inviteRegex = /(https?:\/\/)?(www\.)?(discord\.(gg|io|me|li)|discordapp\.com\/invite)\/[a-zA-Z0-9]+/g;
+const urlRegex = /https?:\/\/[^\s]+/g;
 
 client.on('messageCreate', async (message) => {
   if (message.author.bot || !message.guild) return;
@@ -168,7 +169,7 @@ client.on('messageCreate', async (message) => {
     handleMentions(message, userId, currentTime);
   }
 
-  if (inviteRegex.test(message.content)) {
+  if (inviteRegex.test(message.content)||urlRegex.test(message.content)) {
     handleInviteLinks(message, userId);
   }
 
@@ -204,9 +205,11 @@ function handleMentions(message, userId, currentTime) {
   });
 }
 
-function handleInviteLinks(message, userId) {
+async function handleInviteLinks(message, userId) {
+  
   const inviteLinks = message.content.match(inviteRegex);
-
+  const urls = message.content.match(urlRegex);
+  if (inviteLinks){
   for (const link of inviteLinks) {
     const inviteCode = link.split('/').pop();
     client.fetchInvite(inviteCode).then(invite => {
@@ -216,6 +219,26 @@ function handleInviteLinks(message, userId) {
       }
     }).catch(console.error);
   }
+  }
+  if (urls){   
+  for (const url of urls) {
+      try {
+          // ESMモジュールを動的にインポート
+          const { fetchUrl } = await import('./fetchUrl.mjs');
+
+          const text = await fetchUrl(url);
+
+          if (text.includes('discord.gg')) {
+              await message.delete();
+              applyTimeout(message, userId, '招待リンクのスパム', attention3, timeout3);
+              return;
+          }
+      } catch (error) {
+          console.error('Error:', error);
+      }
+  }
+  }
+  
 }
 
 function handleSpamMessages(message, userId, currentTime) {
@@ -455,3 +478,30 @@ function logErrorToFile(err) {
 process.on('uncaughtException', (err) => {
   sendError(err);
 });
+/*
+client.on('messageCreate', async message => {
+    if (message.author.bot) return;
+
+    const urlRegex = /https?:\/\/[^\s]+/g;
+    const urls = message.content.match(urlRegex);
+
+    if (!urls) return;
+
+    for (const url of urls) {
+        try {
+            // ESMモジュールを動的にインポート
+            const { fetchUrl } = await import('./fetchUrl.mjs');
+
+            const text = await fetchUrl(url);
+
+            if (text.includes('discord.gg')) {
+                await message.delete();
+
+                return;
+            }
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    }
+});
+*/

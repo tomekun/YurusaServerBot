@@ -156,7 +156,7 @@ const strict_time = config.strictMode.strict_time;
 const ADMIN_USER_ID = '958667546284920862';
 let strictMode = false;
 
-const inviteRegex = /(https?:\/\/)?(www\.)?(discord\.(gg|io|me|li)|discordapp\.com\/invite)\/[a-zA-Z0-9]+/g;
+
 const urlRegex = /https?:\/\/[^\s]+/g;
 
 client.on('messageCreate', async (message) => {
@@ -169,7 +169,7 @@ client.on('messageCreate', async (message) => {
     handleMentions(message, userId, currentTime);
   }
 
-  if (inviteRegex.test(message.content)||urlRegex.test(message.content)) {
+  if (urlRegex.test(message.content)) {
     handleInviteLinks(message, userId);
   }
 
@@ -207,19 +207,8 @@ function handleMentions(message, userId, currentTime) {
 
 async function handleInviteLinks(message, userId) {
   
-  const inviteLinks = message.content.match(inviteRegex);
   const urls = message.content.match(urlRegex);
-  if (inviteLinks){
-  for (const link of inviteLinks) {
-    const inviteCode = link.split('/').pop();
-    client.fetchInvite(inviteCode).then(invite => {
-      if (invite.guild.id !== message.guild.id) {
-        message.delete()
-        applyTimeout(message, userId, '招待リンクのスパム', attention3, timeout3);
-      }
-    }).catch(console.error);
-  }
-  }
+ 
   if (urls){   
   for (const url of urls) {
       try {

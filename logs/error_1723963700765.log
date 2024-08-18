@@ -1,0 +1,12 @@
+[2024-08-18T06:48:20.765Z] ReferenceError: readAppIdFromFile is not defined
+    at Client.<anonymous> (/home/runner/yurusaQing-Zhuan-Yong-BOT/index.js:57:15)
+    at Object.onceWrapper (node:events:633:26)
+    at Client.emit (node:events:518:28)
+    at WebSocketManager.triggerClientReady (/home/runner/yurusaQing-Zhuan-Yong-BOT/node_modules/discord.js/src/client/websocket/WebSocketManager.js:388:17)
+    at WebSocketManager.checkShardsReady (/home/runner/yurusaQing-Zhuan-Yong-BOT/node_modules/discord.js/src/client/websocket/WebSocketManager.js:371:10)
+    at WebSocketShard.<anonymous> (/home/runner/yurusaQing-Zhuan-Yong-BOT/node_modules/discord.js/src/client/websocket/WebSocketManager.js:201:16)
+    at WebSocketShard.emit (node:events:518:28)
+    at WebSocketShard.checkReady (/home/runner/yurusaQing-Zhuan-Yong-BOT/node_modules/discord.js/src/client/websocket/WebSocketShard.js:181:12)
+    at WebSocketShard.gotGuild (/home/runner/yurusaQing-Zhuan-Yong-BOT/node_modules/discord.js/src/client/websocket/WebSocketShard.js:155:10)
+    at WebSocketManager.<anonymous> (/home/runner/yurusaQing-Zhuan-Yong-BOT/node_modules/discord.js/src/client/websocket/WebSocketManager.js:241:15)
+

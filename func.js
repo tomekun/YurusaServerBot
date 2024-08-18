@@ -36,7 +36,7 @@ function register(client,clientId,Collection,REST,Routes,path,fs) {
     if ('data' in command && 'execute' in command) {
       client.commands.set(command.data.name, command);
     } else {
-      console.log(`${filePath}に必要な"data"か"execute"がありません`)
+      console.log(`${filePath}に必要な"data"か"execute"がありません(連絡必須)`)
     }
 
   }
@@ -44,6 +44,7 @@ function register(client,clientId,Collection,REST,Routes,path,fs) {
 
 
 function getServerInformation(guild) {
+  try{
   const channels = guild.channels.cache;
   const serverData = [];
   const japanTime = new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
@@ -52,6 +53,7 @@ function getServerInformation(guild) {
   var synthesisDate = `${japanDate.getMonth()+1}/${japanDate.getDate()}-${synthesisTime}` 
 
   channels.forEach((channel) => {
+    
     if (channel.type === 4) {
       const categoryData = {
         //time: channel.createdAt.toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }),
@@ -74,6 +76,7 @@ function getServerInformation(guild) {
 
       serverData.push(categoryData);
     }
+    
   });
 
   const uncategorizedChannels = channels.filter(channel => !channel.parent);
@@ -93,7 +96,10 @@ function getServerInformation(guild) {
   console.log('チャンネルとカテゴリー情報をJSONファイルに保存しました.');
 
   return serverDataJson;
+    
+}catch(e){console.log("復元用チャンネルの取得に失敗（連絡必須）"+e)}
 }
+
 function surveillance() {
   const folderPath = './ServerData'; // フォルダーのパスを指定
   const maxFileCount = 5;
@@ -101,7 +107,7 @@ function surveillance() {
   // フォルダー内のファイルを取得
   fs.readdir(folderPath, (err, files) => {
     if (err) {
-      console.error('ファイル一覧の取得エラー:', err);
+      console.error('ファイル一覧の取得エラー(連絡必須):', err);
       return;
     }
 
@@ -120,7 +126,7 @@ function surveillance() {
 
       fs.unlink(filePathToDelete, (error) => {
         if (error) {
-          console.error('ファイルの削除エラー:', error);
+          console.error('ファイル削除失敗(無視可能):', error);
         } else {
           console.log(`一番古いファイル '${fileToDelete}' を削除しました。`);
         }
@@ -134,7 +140,7 @@ function surveillance() {
       // ファイルを削除
       fs.unlink(`${folderPath}/${fileToDelete}`, (err) => {
         if (err) {
-          console.error('Error deleting file:', err);
+          console.error('ファイル削除失敗(無視可能):', err);
         } else {
           console.log(`File '${fileToDelete}' deleted successfully.`);
         }
@@ -150,7 +156,7 @@ function loadButtonData() {
   const data = fs.readFileSync('./data/buttonData.json', 'utf8');
 
   return JSON.parse(data);
-  }catch(e){console.log("データが存在しません")}
+  }catch(e){console.log("データが存在しません(無視可能)")}
 }
 
 module.exports = {

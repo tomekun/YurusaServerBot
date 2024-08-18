@@ -1,5 +1,5 @@
 {
-  "clientId": "1264469405992226859",
+  "clientId": "1058320643982110791",
   "securitymode": "false",
   "strictMode": {
     "num_people": 3,
@@ -17,7 +17,7 @@
   },
   "mentionSpam": {
     "cooldown": 10,
-    "count": 1,
+    "count": 3,
     "attention": 2,
     "timeout": 1
   }

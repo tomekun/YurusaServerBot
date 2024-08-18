@@ -17,6 +17,7 @@
     "discord.js": "^14.15.3",
     "dotenv": "^16.4.5",
     "googleapis": "^140.0.1",
+    "node-fetch": "^3.3.2",
     "patch-package": "^8.0.0",
     "request": "^2.88.2",
     "sqlite3": "^5.1.7"

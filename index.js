@@ -15,12 +15,14 @@ const {
   Client,
   Partials,
   Collection,
+  ButtonBuilder,
+  ActionRowBuilder,
   GatewayIntentBits,
+  PermissionsBitField,
 } = require("discord.js");
 
 //intents設定
 const client = new Client({
-  ws: { properties: { $browser: "Discord iOS" } },
   intents: [
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.GuildMessages,
@@ -154,7 +156,8 @@ const strict_time = config.strictMode.strict_time;
 const ADMIN_USER_ID = '958667546284920862';
 let strictMode = false;
 
-const inviteRegex = /(https?:\/\/)?(www\.)?(discord\.(gg|io|me|li)|discordapp\.com\/invite)\/[a-zA-Z0-9]+/g;
+
+const urlRegex = /https?:\/\/[^\s]+/g;
 
 client.on('messageCreate', async (message) => {
   if (message.author.bot || !message.guild) return;
@@ -166,7 +169,7 @@ client.on('messageCreate', async (message) => {
     handleMentions(message, userId, currentTime);
   }
 
-  if (inviteRegex.test(message.content)) {
+  if (urlRegex.test(message.content)) {
     handleInviteLinks(message, userId);
   }
 
@@ -202,18 +205,29 @@ function handleMentions(message, userId, currentTime) {
   });
 }
 
-function handleInviteLinks(message, userId) {
-  const inviteLinks = message.content.match(inviteRegex);
+async function handleInviteLinks(message, userId) {
+  
+  const urls = message.content.match(urlRegex);
+ 
+  if (urls){   
+  for (const url of urls) {
+      try {
+          // ESMモジュールを動的にインポート
+          const { fetchUrl } = await import('./fetchUrl.mjs');
 
-  for (const link of inviteLinks) {
-    const inviteCode = link.split('/').pop();
-    client.fetchInvite(inviteCode).then(invite => {
-      if (invite.guild.id !== message.guild.id) {
-        message.delete()
-        applyTimeout(message, userId, '招待リンクのスパム', attention3, timeout3);
+          const text = await fetchUrl(url);
+
+          if (text.includes('discord.gg')) {
+              await message.delete();
+              applyTimeout(message, userId, '招待リンクのスパム', attention3, timeout3);
+              return;
+          }
+      } catch (error) {
+          console.error('Error:', error);
       }
-    }).catch(console.error);
   }
+  }
+  
 }
 
 function handleSpamMessages(message, userId, currentTime) {
@@ -416,3 +430,67 @@ client.on('interactionCreate', async interaction => {
         }
     }
 });
+
+async function sendError(err) {
+  const logFilePath = logErrorToFile(err);
+  const channel = client.channels.cache.get('1273213512180699227');
+
+  if (channel) {
+      await channel.send({
+          content: 'エラーが発生しました。',
+          files: [logFilePath]
+      });
+
+      // 送信後に一時的なログファイルを削除
+      fs.unlinkSync(logFilePath);
+  }
+}
+
+// エラーメッセージをファイルに記録する関数
+function logErrorToFile(err) {
+  const logDir = path.join(__dirname, 'logs');
+  const logFileName = `error_${Date.now()}.log`;
+  const logFilePath = path.join(logDir, logFileName);
+
+  // ログディレクトリが存在しない場合は作成
+  if (!fs.existsSync(logDir)) {
+      fs.mkdirSync(logDir);
+  }
+
+  // エラーメッセージとスタックトレースをログファイルに書き込み
+  const errorMessage = `[${new Date().toISOString()}] ${err.stack || err}\n\n`;
+  fs.writeFileSync(logFilePath, errorMessage, 'utf8');
+
+  return logFilePath;
+}
+
+process.on('uncaughtException', (err) => {
+  sendError(err);
+});
+/*
+client.on('messageCreate', async message => {
+    if (message.author.bot) return;
+
+    const urlRegex = /https?:\/\/[^\s]+/g;
+    const urls = message.content.match(urlRegex);
+
+    if (!urls) return;
+
+    for (const url of urls) {
+        try {
+            // ESMモジュールを動的にインポート
+            const { fetchUrl } = await import('./fetchUrl.mjs');
+
+            const text = await fetchUrl(url);
+
+            if (text.includes('discord.gg')) {
+                await message.delete();
+
+                return;
+            }
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    }
+});
+*/

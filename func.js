@@ -16,7 +16,7 @@ async function register(client, clientId, Collection, REST, Routes, path, fs) {
 
   const rest = new REST({ version: '10' }).setToken(process.env['DISCORD_BOT_TOKEN']);
 
-  const maxRetries = 3; // 最大再試行回数
+  const maxRetries = 2;
   let attempt = 0;
 
   while (attempt < maxRetries) {

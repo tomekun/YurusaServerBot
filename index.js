@@ -6,6 +6,8 @@ require('dotenv').config();
 //ファイルの読み込み
 
 const {clientId} = require('./config.json');
+const {appId} = require('./appid.json');
+
 const func = require("./func.js")
 const server = require('./server.js'); 
 
@@ -51,14 +53,18 @@ console.log("起動準備中...")
 client.login(process.env['DISCORD_BOT_TOKEN']);
 
 //Readyイベント発火
+client.once("ready", async () => {
+  const {clientId} = require('./config.json');
+  
+  
+  func.register(client, clientId, Collection, REST, Routes, path, fs);
 
-client.once("ready", async() => {
-  func.register(client,clientId,Collection,REST,Routes,path,fs)
-  server.keepServer()
+  server.keepServer();
   console.log("起動完了");
   console.log(`Logged in as ${client.user.tag}!`);
-  
 });
+
+
 
 
 client.on('interactionCreate', async interaction => {

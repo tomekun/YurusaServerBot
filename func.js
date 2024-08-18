@@ -2,11 +2,10 @@ const { load } = require("cheerio");
 const fs = require("fs")
 const path = require("path")
 
-function register(client,clientId,Collection,REST,Routes,path,fs) {
+async function register(client, clientId, Collection, REST, Routes, path, fs) {
   client.commands = new Collection();
 
-
-  const commandsPath = path.join(__dirname, 'commands')
+  const commandsPath = path.join(__dirname, 'commands');
   const commands = [];
   const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('js'));
 
@@ -14,31 +13,39 @@ function register(client,clientId,Collection,REST,Routes,path,fs) {
     const command = require(`./commands/${file}`);
     commands.push(command.data.toJSON());
   }
+
   const rest = new REST({ version: '10' }).setToken(process.env['DISCORD_BOT_TOKEN']);
-  (async () => {
+
+  const maxRetries = 3; // 最大再試行回数
+  let attempt = 0;
+
+  while (attempt < maxRetries) {
     try {
-      console.log(`${commandFiles}`);
-      console.log(`${commands.length}個のアプリケーションコマンドを登録します`);
+      console.log(`${commandFiles.length} 個のアプリケーションコマンドを登録します`);
 
       const data = await rest.put(
         Routes.applicationCommands(clientId),
         { body: commands },
       );
 
-      console.log(`${data.length}個のアプリケーションコマンドを登録しました。`);
+      console.log(`${data.length} 個のアプリケーションコマンドを登録しました。`);
+      break; // 登録成功した場合はループを抜ける
     } catch (error) {
-      console.error(error);
+      console.error('Error registering commands:', error);
+      if (error.code === 20012) {
+        console.log(`Retrying registration... Attempt ${attempt + 1} of ${maxRetries}`);
+        attempt++;
+        // アプリIDの再取得（必要に応じてファイルから再読み込みする処理を追加）
+        const { appId } = require('./appid.json');
+        clientId = appId; // アプリIDの再設定（必要に応じて調整）
+      } else {
+        throw error; // 他のエラーが発生した場合は再試行せずにエラーをスロー
+      }
     }
-  })();
-  for (const file of commandFiles) {
-    const filePath = path.join(commandsPath, file);
-    const command = require(filePath);
-    if ('data' in command && 'execute' in command) {
-      client.commands.set(command.data.name, command);
-    } else {
-      console.log(`${filePath}に必要な"data"か"execute"がありません(連絡必須)`)
-    }
+  }
 
+  if (attempt === maxRetries) {
+    console.error('Max retries reached. Failed to register commands.');
   }
 }
 
@@ -158,10 +165,20 @@ function loadButtonData() {
   return JSON.parse(data);
   }catch(e){console.log("データが存在しません(無視可能)")}
 }
-
+function readAppIdFromFile(filePath) {
+  try {
+    const data = fs.readFileSync(filePath, 'utf8');
+    const json = JSON.parse(data);
+    return json.appid; // `appid` を含むキーの名前を正確に指定してください
+  } catch (error) {
+    console.error('Error reading appid from file:', error);
+    return null;
+  }
+}
 module.exports = {
   loadButtonData,
   surveillance,
   getServerInformation,
   register,
+  readAppIdFromFile,
 }

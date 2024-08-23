@@ -4,7 +4,7 @@ const path = require('path');
 
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName('show_config')
+        .setName('show')
         .setDescription('BOTの設定内容を表示します'),
     async execute(interaction) {
         try {

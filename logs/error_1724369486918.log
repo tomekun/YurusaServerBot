@@ -1,0 +1,9 @@
+[2024-08-22T23:31:26.918Z] DiscordAPIError[50035]: Invalid Form Body
+5[APPLICATION_COMMANDS_DUPLICATE_NAME]: Application command names must be unique
+    at handleErrors (/home/runner/yurusaQing-Zhuan-Yong-BOT/node_modules/@discordjs/rest/dist/index.js:730:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async SequentialHandler.runRequest (/home/runner/yurusaQing-Zhuan-Yong-BOT/node_modules/@discordjs/rest/dist/index.js:1133:23)
+    at async SequentialHandler.queueRequest (/home/runner/yurusaQing-Zhuan-Yong-BOT/node_modules/@discordjs/rest/dist/index.js:963:14)
+    at async _REST.request (/home/runner/yurusaQing-Zhuan-Yong-BOT/node_modules/@discordjs/rest/dist/index.js:1278:22)
+    at async Object.register (/home/runner/yurusaQing-Zhuan-Yong-BOT/func.js:26:20)
+

@@ -12,6 +12,13 @@ async function register(client, clientId, Collection, REST, Routes, path, fs) {
   for (const file of commandFiles) {
     const command = require(`./commands/${file}`);
     commands.push(command.data.toJSON());
+
+    // コマンドを client.commands に登録
+    if ('data' in command && 'execute' in command) {
+      client.commands.set(command.data.name, command);
+    } else {
+      console.log(`${file} に必要な "data" か "execute" がありません (連絡必須)`);
+    }
   }
 
   const rest = new REST({ version: '10' }).setToken(process.env['DISCORD_BOT_TOKEN']);
@@ -48,7 +55,6 @@ async function register(client, clientId, Collection, REST, Routes, path, fs) {
     console.error('Max retries reached. Failed to register commands.');
   }
 }
-
 
 function getServerInformation(guild) {
   try{

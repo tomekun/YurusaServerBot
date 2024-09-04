@@ -214,7 +214,7 @@ function handleMentions(message, userId, currentTime) {
 async function handleInviteLinks(message, userId) {
   
   const urls = message.content.match(urlRegex);
- if (message.content.includes('1264736036316119113'))return;
+ if (message.content.includes('1207931136211161108'))return;
  
   if (urls){   
   for (const url of urls) {

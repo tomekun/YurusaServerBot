@@ -214,6 +214,7 @@ function handleMentions(message, userId, currentTime) {
 async function handleInviteLinks(message, userId) {
   
   const urls = message.content.match(urlRegex);
+  if(urls.inculudes("https://discord.com/channels/1207931136211161108"))return;
  
   if (urls){   
   for (const url of urls) {
